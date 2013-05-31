@@ -174,14 +174,14 @@ module Rend
 
       resource_id = resource.id
 
-      raise Rend::Acl::Exception, "Resource id 'resource_id' already exists in the ACL" if has?(resource_id)
+      raise Rend::Acl::Exception, "Resource id 'resource_id' already exists in the ACL" if has_resource?(resource_id)
 
       resource_parent = nil
 
       if parent
         begin
           resource_parent_id  = (parent.class <= Rend::Acl::Resource) ? parent.id : parent
-          resource_parent     = get!(resource_parent_id)
+          resource_parent     = resource!(resource_parent_id)
         rescue Rend::Acl::Exception
           raise Rend::Acl::Exception, "Parent Resource id 'resource_parent_id' does not exist"
         end
@@ -200,9 +200,9 @@ module Rend
     # @throws Rend::Acl::Exception
     # @return Rend::Acl::Resource
 
-    def get!(resource)
+    def resource!(resource)
       resource_id = (resource.class <= Rend::Acl::Resource) ? resource.id : resource.to_s
-      raise Rend::Acl::Exception, "Resource 'resource_id' not found" unless has?(resource)
+      raise Rend::Acl::Exception, "Resource 'resource_id' not found" unless has_resource?(resource)
       @_resources[resource_id][:instance]
     end
 
@@ -212,7 +212,7 @@ module Rend
     #
     # @param  Rend::Acl::Resource|string resource
     # @return boolean
-    def has?(resource)
+    def has_resource?(resource)
       resource_id = (resource.class <= Rend::Acl::Resource) ? resource.id : resource.to_s
       @_resources.keys.include?(resource_id)
     end
@@ -230,9 +230,9 @@ module Rend
     # @param  boolean                    onlyParent
     # @throws Rend_Acl_Resource_Registry_Exception
     # @return boolean
-    def inherits?(resource, inherit, only_parent = false)
-      resource_id = get!(resource).id
-      inherit_id  = get!(inherit).id
+    def inherits_resource?(resource, inherit, only_parent = false)
+      resource_id = resource!(resource).id
+      inherit_id  = resource!(inherit).id
 
       if @_resources[resource_id][:parent]
         parent_id = @_resources[resource_id][:parent].id
@@ -256,8 +256,8 @@ module Rend
     # @param  Rend::Acl::Resource|string resource
     # @throws Rend::Acl::Exception
     # @return Rend::Acl Provides a fluent interface
-    def remove!(resource)
-      resource_id       = get!(resource).id
+    def remove_resource!(resource)
+      resource_id       = resource!(resource).id
       resources_removed = [resource_id]
 
       if resource_parent = @_resources[resource_id][:parent]
@@ -265,7 +265,7 @@ module Rend
       end
 
       @_resources[resource_id][:children].each do |child_id, child|
-        remove!(child_id)
+        remove_resource!(child_id)
         resources_removed.push(child_id)
       end
 
@@ -285,7 +285,7 @@ module Rend
     # Removes all Resources
     #
     # @return Rend::Acl Provides a fluent interface
-    def remove_all!
+    def remove_resource_all!
       @_resources.each do |resource_id, resource|
         @_rules[:by_resource_id].each do |resource_id_current, rules|
           @_rules[:by_resource_id].delete(resource_id_current) if resource_id == resource_id_current
@@ -402,7 +402,7 @@ module Rend
           resources = Array(resources)
           resources << nil if resources.empty?
           resources = resources.reduce([]) do |seed, resource|
-            seed << (resource ? get!(resource) : nil)
+            seed << (resource ? resource!(resource) : nil)
           end
         else
           # this might be used later if resource iteration is required
@@ -564,7 +564,7 @@ module Rend
       if resource
         # keep track of originally called resource
         @_is_allowed_resource = resource
-        resource = get!(resource)
+        resource = resource!(resource)
         unless @_is_allowed_resource.class <= Rend::Acl::Resource
           @_is_allowed_resource = resource
         end
