@@ -4,12 +4,12 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rend/acl/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "rend-core"
+  spec.name          = "rend-acl"
   spec.version       = Rend::Acl::Version::STRING
   spec.authors       = ["Daniel Doezema"]
   spec.email         = ["daniel.doezema@gmail.com"]
   spec.description   = "Zend Framework components ported to Ruby -- Core Gem."
-  spec.summary       = "rend-acl-#{Rend::Core::Version::STRING}"
+  spec.summary       = "rend-acl-#{Rend::Acl::Version::STRING}"
   spec.homepage      = "https://github.com/veloper/rend-acl"
   spec.license       = "New-BSD"
 
@@ -26,9 +26,9 @@ Gem::Specification.new do |spec|
 
   dependency_gems.each do |gem_name|
     if Rend::Acl::Version::STRING =~ /[a-zA-Z]+/
-      spec.add_runtime_dependency "#{gem_name}", "= #{Rend::Version::STRING}"
+      spec.add_runtime_dependency "#{gem_name}", "= #{Rend::Acl::Version::STRING}"
     else
-      spec.add_runtime_dependency "#{gem_name}", "~> #{Rend::Version::STRING.split('.')[0..1].concat(['0']).join('.')}"
+      spec.add_runtime_dependency "#{gem_name}", "~> #{Rend::Acl::Version::STRING.split('.')[0..1].concat(['0']).join('.')}"
     end
   end
 end
