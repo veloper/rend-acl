@@ -1,4 +1,5 @@
 require 'rend/core'
+
 require 'rend/acl/version'
 require 'rend/acl/exception'
 require 'rend/acl/role'
@@ -592,7 +593,6 @@ module Rend
           resource = @_resources[resource.id][:parent]
         end
       else
-        # IN HERE
         @_is_allowed_privilege = privilege
         # query on one privilege
         loop do # loop terminates at :all_resources pseudo-parent
@@ -600,7 +600,6 @@ module Rend
           if nil != role && nil != (result = _role_dfs_one_privilege(role, resource, privilege))
             return result
           end
-
 
           # look for rule on 'allRoles' pseudo-parent
           if nil != (rule_type = _rule_type(resource, nil, privilege))
@@ -635,7 +634,7 @@ module Rend
     # @param  Rend::Acl::Resource resource
     # @return boolean|nil
     def _role_dfs_all_privileges(role, resource = nil)
-      type_hint! Rend::Acl::Role, role, :is_required => true
+      type_hint! Rend::Acl::Role,     role, :is_required => true
       type_hint! Rend::Acl::Resource, resource
 
       dfs = {:visited => {}, :stack => []}
