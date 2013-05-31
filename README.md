@@ -20,9 +20,6 @@ Rend-Acl is a port of [Zend_Acl](http://framework.zend.com/manual/1.12/en/zend.a
 * Original PHP code is licensed under [Zend's New-BSD License](http://framework.zend.com/license/).
     * This license can be found in `./ZEND_FRAMEWORK_LICENSE.txt`
 
-#### Important Excerpt from the Zend's New-BSD License...
-> Neither the name of Zend Technologies USA, Inc. nor the names of its
-> contributors may be used to endorse or promote products derived from this
-> software without specific prior written permission.
-
-**TO BE CLEAR:** This project is in **no-way** associated with, or endorsed by, Zend Technologies USA, Inc. or any of its contributors.
+## Acknowledgements
+* This project is **not** associated with, or endorsed by, Zend Technologies USA, Inc., nor any of its contributors.
+* Rend's modular design was heavily influced by [RSpec](https://github.com/rspec/rspec) approach.
