@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = Rend::Acl::Version::STRING
   spec.authors       = ["Daniel Doezema"]
   spec.email         = ["daniel.doezema@gmail.com"]
-  spec.description   = "Zend Framework components ported to Ruby -- Core Gem."
+  spec.description   = "A port of Zend_Acl with modifications made to bring the api more inline with Ruby conventions."
   spec.summary       = "rend-acl-#{Rend::Acl::Version::STRING}"
   spec.homepage      = "https://github.com/veloper/rend-acl"
   spec.license       = "New-BSD"
