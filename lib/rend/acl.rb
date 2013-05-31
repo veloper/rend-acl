@@ -1,3 +1,4 @@
+require 'rend/core'
 require 'rend/acl/version'
 require 'rend/acl/exception'
 require 'rend/acl/role'
