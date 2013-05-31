@@ -14,7 +14,7 @@ Rend-Acl is a port of [Zend_Acl](http://framework.zend.com/manual/1.12/en/zend.a
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
 
-# Licensing
+## Licensing
 
 * All ported Ruby code and assoicated 'Rend' gems are under a simple [New-BSD License](http://dan.doezema.com/licenses/new-bsd).
 * Original PHP code is licensed under [Zend's New-BSD License](http://framework.zend.com/license/).
