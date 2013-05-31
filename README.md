@@ -22,4 +22,4 @@ Rend-Acl is a port of [Zend_Acl](http://framework.zend.com/manual/1.12/en/zend.a
 
 ## Acknowledgements
 * This project is **not** associated with, or endorsed by, Zend Technologies USA, Inc., nor any of its contributors.
-* Rend's modular design was heavily influced by [RSpec](https://github.com/rspec/rspec) approach.
+* Rend's modular design was heavily influced by [RSpec](https://github.com/rspec/rspec)'s approach.
