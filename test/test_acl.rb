@@ -16,7 +16,7 @@ class AclTest < Test::Unit::TestCase
     assert_use_case_1 YAML.load( YAML.dump(use_case_1) )
   end
 
-  def test_acl_user_case_1
+  def test_use_case_1
     assert_use_case_1(use_case_1)
   end
 
