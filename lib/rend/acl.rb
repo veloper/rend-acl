@@ -77,7 +77,7 @@ module Rend
     # @param  Rend::Acl::Role|string role
     # @uses   Rend::Acl::Role::Registry::get!()
     # @return Rend::Acl::Role
-    def role(role)
+    def role!(role)
       role_registry.get!(role)
     end
 
@@ -407,8 +407,8 @@ module Rend
           end
         else
           # this might be used later if resource iteration is required
-          all_resources = @_resources.reduce([]) do |seed, resource|
-            seed << resource[:instance]
+          all_resources = @_resources.values.reduce([]) do |seed, r_target|
+            seed << r_target[:instance]
           end
         end
 
@@ -429,8 +429,8 @@ module Rend
               roles.each do |role|
                 rules = _rules(resource, role, true)
                 if privileges.empty?
-                  rules[:all_privileges][:type] = type
-                  rules[:by_privilege_id]       = {} unless rules.has_key?(:by_privilege_id)
+                  rules[:all_privileges]  = {:type => type}
+                  rules[:by_privilege_id] = {} unless rules.has_key?(:by_privilege_id)
                 else
                   privileges.each do |privilege|
                     rules[:by_privilege_id][privilege] = {:type => type}
@@ -469,7 +469,6 @@ module Rend
                     end
                     next
                   end
-
                   if rules[:all_privileges].has_key?(:type) && rules[:all_privileges][:type] == type
                     rules.delete(:all_privileges)
                   end
@@ -571,12 +570,15 @@ module Rend
         end
       end
 
+
       if privilege.nil?
         # query on all privileges
         loop do # loop terminates at :all_resources pseudo-parent
           # depth-first search on role if it is not :all_roles pseudo-parent
-          result = _role_dfs_all_privileges(role, resource)
-          return result if role && result
+          if !role.nil? && !(result = _role_dfs_all_privileges(role, resource)).nil?
+            return result
+          end
+
 
           # look for rule on :all_roles psuedo-parent
           rules = _rules(resource, nil)
@@ -597,7 +599,7 @@ module Rend
         # query on one privilege
         loop do # loop terminates at :all_resources pseudo-parent
           # depth-first search on role if it is not :all_roles pseudo-parent
-          if nil != role && nil != (result = _role_dfs_one_privilege(role, resource, privilege))
+          if !role.nil? && !(result = _role_dfs_one_privilege(role, resource, privilege)).nil?
             return result
           end
 
