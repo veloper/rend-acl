@@ -9,6 +9,10 @@ module Rend
         @id = id.to_s
       end
 
+      def to_s
+        @id
+      end
+
     end
   end
 end
