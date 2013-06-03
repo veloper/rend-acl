@@ -46,6 +46,61 @@ module Rend
       }
     end
 
+    # Simplify adding roles and resources
+    #
+    # - Roles
+    #   - Arguments
+    #     .add! Rend::Acl::Role.new("editor")                                 # Single
+    #     .add! Rend::Acl::Role.new("editor"), 'guest'                        # Single w/ Inheritance
+    #   - Options Hash
+    #     .add! :role => 'editor'                                             # Single
+    #     .add! :role => {'editor' => 'guest'}                                # Single w/ Inheritance
+    #     .add! :role => ['guest', 'editor']                                  # Multiple
+    #     .add! :role => ['guest', 'contributor', {'editor' => 'guest'}]      # Multiple w/ Inheritance
+    # - Resources
+    #   - Arguments
+    #     .add! Rend::Acl::Resource.new("city")                               # Single
+    #     .add! Rend::Acl::Resource.new("building"), 'city'                   # Single w/ Inheritance
+    #     .add! Rend::Acl::Resource.new("building"), ['city', 'building']     # Single w/ Multiple Inheritance
+    #   - Options Hash
+    #     .add! :resource => 'city'                                           # Single
+    #     .add! :resource => {'building' => 'city'}                           # Single w/ Inheritance
+    #     .add! :resource => ['city', 'building']                             # Multiple
+    #     .add! :resource => ['city', 'building', {'building' => 'city'}]     # Multiple w/ Inheritance
+    # - Mixed Roles & Resources
+    #     .add! :role => ['guest', {'editor' => 'guest'}], :resource => ['city', {'building' => 'city'}]
+    #
+    def add!(*args)
+      raise ArgumentError, "wrong number of arguments(0 for 1..2)" if args.empty?
+      method_args = {:role => [], :resource => []}
+      case args[0]
+      when Rend::Acl::Role      then method_args[:role]     << args
+      when Rend::Acl::Resource  then method_args[:resource] << args
+      when Hash
+        args[0].each do |key, value|
+          if [:role, :resource].include?(key.to_sym)
+            case value
+            when String then method_args[key] << value
+            when Hash   then method_args[key] << value.flatten
+            when Array
+              value.each do |x|
+                method_args[key] << (x.is_a?(Hash) ? x.flatten : x)
+              end
+            end
+          else
+            raise Rend::Acl::Exception, "Unrecognized key (#{key}) in options hash."
+          end
+        end
+      else
+        raise Rend::Acl::Exception, "First argument is not an instance of Rend::Acl::Role, Rend::Acl::Resource, or Hash."
+      end
+      method_args.each do |type, arguments|
+        method = "add_#{type.to_s}!".to_sym
+        arguments.each {|args| send(method, *args)}
+      end
+      self
+    end
+
     # Adds a Role having an identifier unique to the registry
     #
     # The parents parameter may be a reference to, or the string identifier for,
@@ -61,7 +116,7 @@ module Rend
     #
     # @param  Rend::Acl::Role|string       role
     # @param  Rend::Acl::Role|string|array parents
-    # @uses   Rend::Acl::Role::Registry::add?()
+    # @uses   Rend::Acl::Role::Registry::add!()
     # @return Rend::Acl Provides a fluent interface
     def add_role!(role, parents = nil)
       role = Rend::Acl::Role.new(role) if role.is_a?(String)
@@ -88,7 +143,7 @@ module Rend
     # @param  Rend::Acl::Role|string role
     # @uses   Rend::Acl::Role::Registry::has?()
     # @return boolean
-    def has_role?(role)
+    def role?(role)
       role_registry.has?(role)
     end
 
@@ -175,7 +230,7 @@ module Rend
 
       resource_id = resource.id
 
-      raise Rend::Acl::Exception, "Resource id 'resource_id' already exists in the ACL" if has_resource?(resource_id)
+      raise Rend::Acl::Exception, "Resource id 'resource_id' already exists in the ACL" if resource?(resource_id)
 
       resource_parent = nil
 
@@ -203,7 +258,7 @@ module Rend
 
     def resource!(resource)
       resource_id = (resource.class <= Rend::Acl::Resource) ? resource.id : resource.to_s
-      raise Rend::Acl::Exception, "Resource 'resource_id' not found" unless has_resource?(resource)
+      raise Rend::Acl::Exception, "Resource 'resource_id' not found" unless resource?(resource)
       @_resources[resource_id][:instance]
     end
 
@@ -213,7 +268,7 @@ module Rend
     #
     # @param  Rend::Acl::Resource|string resource
     # @return boolean
-    def has_resource?(resource)
+    def resource?(resource)
       resource_id = (resource.class <= Rend::Acl::Resource) ? resource.id : resource.to_s
       @_resources.keys.include?(resource_id)
     end
@@ -306,6 +361,16 @@ module Rend
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
     def allow!(roles = nil, resources = nil, privileges = nil)
+      if roles.is_a?(Hash)
+        options     = roles
+        roles       = options.fetch(:role,      options.fetch(:roles, nil))
+        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
+        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+      end
+      roles      = nil if roles      == :all
+      resources  = nil if resources  == :all
+      privileges = nil if privileges == :all
+
       set_rule!(OP_ADD, TYPE_ALLOW, roles, resources, privileges)
     end
 
@@ -317,6 +382,16 @@ module Rend
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
     def deny!(roles = nil, resources = nil, privileges = nil)
+      if roles.is_a?(Hash)
+        options     = roles
+        roles       = options.fetch(:role,      options.fetch(:roles, nil))
+        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
+        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+      end
+      roles      = nil if roles      == :all
+      resources  = nil if resources  == :all
+      privileges = nil if privileges == :all
+
       set_rule!(OP_ADD, TYPE_DENY, roles, resources, privileges)
     end
 
@@ -328,6 +403,16 @@ module Rend
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
     def remove_allow!(roles = nil, resources = nil, privileges = nil)
+      if roles.is_a?(Hash)
+        options     = roles
+        roles       = options.fetch(:role,      options.fetch(:roles, nil))
+        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
+        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+      end
+      roles      = nil if roles      == :all
+      resources  = nil if resources  == :all
+      privileges = nil if privileges == :all
+
       set_rule!(OP_REMOVE, TYPE_ALLOW, roles, resources, privileges)
     end
 
@@ -339,6 +424,16 @@ module Rend
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
     def remove_deny!(roles = nil, resources = nil, privileges = nil)
+      if roles.is_a?(Hash)
+        options     = roles
+        roles       = options.fetch(:role,      options.fetch(:roles, nil))
+        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
+        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+      end
+      roles      = nil if roles      == :all
+      resources  = nil if resources  == :all
+      privileges = nil if privileges == :all
+
       set_rule!(OP_REMOVE, TYPE_DENY, roles, resources, privileges)
     end
 
@@ -553,6 +648,19 @@ module Rend
       @_is_allowed_role       = nil
       @_is_allowed_resource   = nil
       @_is_allowed_privilege  = nil
+
+      # Readability
+      if role.is_a?(Hash)
+        options   = role
+        role      = options.fetch(:role,      nil)
+        resource  = options.fetch(:resource,  nil)
+        privilege = options.fetch(:privilege, nil)
+      end
+
+      # Readability
+      role      = nil if role      == :all
+      resource  = nil if resource  == :all
+      privilege = nil if privilege == :all
 
       if role
         # keep track of originally called role
