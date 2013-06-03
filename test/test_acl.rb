@@ -20,6 +20,90 @@ class AclTest < Test::Unit::TestCase
     assert_use_case_1(use_case_1)
   end
 
+  def test_add_with_single_role_object_via_arguments
+    @acl.add! Rend::Acl::Role.new("editor")
+    assert @acl.role? "editor"
+  end
+
+  def test_add_with_single_role_object_using_inheritance_object_via_arguments
+    @acl.add! role_guest  = Rend::Acl::Role.new("guest")
+    @acl.add! role_editor = Rend::Acl::Role.new("editor"), role_guest
+    assert @acl.inherits_role? "editor", role_guest
+  end
+
+  def test_add_with_single_role_object_using_inheritance_string_via_arguments
+    @acl.add! Rend::Acl::Role.new("guest")
+    @acl.add! Rend::Acl::Role.new("editor"), "guest"
+    assert @acl.inherits_role? "editor", "guest"
+  end
+
+  def test_add_with_single_role_object_via_hash
+    @acl.add! :role => "editor"
+    assert @acl.role? "editor"
+  end
+
+  def test_add_with_single_role_object_using_inheritance_object_via_hash
+    @acl.add! role_guest  = Rend::Acl::Role.new("guest")
+    @acl.add! :role => {Rend::Acl::Role.new("editor") => role_guest}
+    assert @acl.inherits_role? "editor", role_guest
+  end
+
+  def test_add_with_single_role_string_using_inheritance_object_via_hash
+    @acl.add! role_guest  = Rend::Acl::Role.new("guest")
+    @acl.add! :role => {"editor" => role_guest}
+    assert @acl.inherits_role? "editor", role_guest
+  end
+
+  def test_add_with_single_role_string_using_inheritance_string_via_hash
+    @acl.add! Rend::Acl::Role.new("guest")
+    @acl.add! :role => {"editor" => "guest"}
+    assert @acl.inherits_role? "editor", "guest"
+  end
+
+  def test_add_with_multiple_role_strings_via_hash
+    @acl.add! :role => ['city', 'building', 'room']
+    assert @acl.role? "city"
+    assert @acl.role? "building"
+    assert @acl.role? "room"
+  end
+
+  def test_add_with_multiple_role_strings_using_inheritance_strings_via_hash
+    @acl.add! :role => ['city', {'building' => 'city'}, {'room' => 'building'}, 'user']
+    assert @acl.role? "city"
+    assert @acl.role? "building"
+    assert @acl.role? "room"
+    assert @acl.role? "user"
+    assert @acl.inherits_role? "building", "city"
+    assert @acl.inherits_role? "room", "building"
+  end
+
+  def test_adding_with_add!
+    # Simplify adding roles and resources
+    #
+    # - Roles
+    #   - Arguments
+    #     .add! Rend::Acl::Role.new("editor")                                 # Single
+    #     .add! Rend::Acl::Role.new("editor"), 'guest'                        # Single w/ Inheritance
+    #   - Options Hash
+    #     .add! :role => 'editor'                                             # Single
+    #     .add! :role => {'editor' => 'guest'}                                # Single w/ Inheritance
+    #     .add! :role => ['guest', 'editor']                                  # Multiple
+    #     .add! :role => ['guest', 'contributor', {'editor' => 'guest'}]      # Multiple w/ Inheritance
+    # - Resources
+    #   - Arguments
+    #     .add! Rend::Acl::Resource.new("city")                               # Single
+    #     .add! Rend::Acl::Resource.new("building"), 'city'                   # Single w/ Inheritance
+    #     .add! Rend::Acl::Resource.new("building"), ['city', 'building']     # Single w/ Multiple Inheritance
+    #   - Options Hash
+    #     .add! :resource => 'city'                                           # Single
+    #     .add! :resource => {'building' => 'city'}                           # Single w/ Inheritance
+    #     .add! :resource => ['city', 'building']                             # Multiple
+    #     .add! :resource => ['city', 'building', {'building' => 'city'}]     # Multiple w/ Inheritance
+    # - Mixed Roles & Resources
+    #     .add! :role => ['guest', {'editor' => 'guest'}], :resource => ['city', {'building' => 'city'}]
+    #
+  end
+
   # ==== Orignal Zend_Acl Tests Below
 
   # Ensures that basic addition and retrieval of a single Role works
@@ -40,7 +124,7 @@ class AclTest < Test::Unit::TestCase
   def test_role_registry_remove_one
     role_guest = Rend::Acl::Role.new('guest')
     @acl.add_role!(role_guest).remove_role!(role_guest)
-    assert_equal false, @acl.has_role?(role_guest)
+    assert_equal false, @acl.role?(role_guest)
   end
 
   # Ensures that an exception is thrown when a non-existent Role is specified for removal
@@ -55,7 +139,7 @@ class AclTest < Test::Unit::TestCase
   def test_role_registry_remove_all
     role_guest = Rend::Acl::Role.new('guest')
     @acl.add_role!(role_guest).remove_role_all!
-    assert_equal false, @acl.has_role?(role_guest)
+    assert_equal false, @acl.role?(role_guest)
   end
 
   # Ensures that an exception is thrown when a non-existent Role is specified as a parent upon Role addition
@@ -184,7 +268,7 @@ class AclTest < Test::Unit::TestCase
   def test_resource_remove_one
     resource_area = Rend::Acl::Resource.new('area')
     @acl.add_resource!(resource_area).remove_resource!(resource_area)
-    assert_equal false, @acl.has_resource?(resource_area)
+    assert_equal false, @acl.resource?(resource_area)
   end
 
   # Ensures that an exception is thrown when a non-existent Resource is specified for removal
@@ -199,7 +283,7 @@ class AclTest < Test::Unit::TestCase
   def test_resource_remove_all
     resource_area = Rend::Acl::Resource.new('area')
     @acl.add_resource!(resource_area).remove_resource_all!
-    assert_equal false, @acl.has_resource?(resource_area)
+    assert_equal false, @acl.resource?(resource_area)
   end
 
   # Ensures that an exception is thrown when a non-existent Resource is specified as a parent upon Resource addition
@@ -242,7 +326,7 @@ class AclTest < Test::Unit::TestCase
     assert_equal false, @acl.inherits_resource?(resource_city, resource_room)
 
     @acl.remove_resource!(resource_building)
-    assert_equal false, @acl.has_resource?(resource_room)
+    assert_equal false, @acl.resource?(resource_room)
   end
 
   # Ensures that the same Resource cannot be added more than once
@@ -437,7 +521,7 @@ class AclTest < Test::Unit::TestCase
     assert_equal true, @acl.allowed?
   end
 
-  # # Ensure that basic rule removal works
+  # Ensure that basic rule removal works
   def test_rules_remove
     @acl.allow!(nil, nil, ['privilege1', 'privilege2'])
     assert_equal false, @acl.allowed?
@@ -709,7 +793,7 @@ class AclTest < Test::Unit::TestCase
     @acl.remove_role!('test0')
 
     # Check after fix
-    assert_equal false, @acl.has_role?('test0')
+    assert_equal false, @acl.role?('test0')
   end
 
   # @group ZF-8039
