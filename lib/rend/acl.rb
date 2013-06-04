@@ -84,13 +84,12 @@ module Rend
             case value
             when String then method_args[key] << value
             when Hash   then method_args[key] << value.flatten
-            when Array
-              value.each do |x|
-                method_args[key] << (x.is_a?(Hash) ? x.flatten : x)
-              end
+            when Array  then value.each {|x| method_args[key] << (x.is_a?(Hash) ? x.flatten : x) }
+            else
+              raise Rend::Acl::Exception, "Invalid value (#{value.inspect}) for key (#{key.to_s}) in options hash."
             end
           else
-            raise Rend::Acl::Exception, "Unrecognized key (#{key}) in options hash."
+            raise Rend::Acl::Exception, "Invalid key (#{key.to_s}) in options hash."
           end
         end
       else
