@@ -46,28 +46,30 @@ module Rend
       }
     end
 
-    # Simplify adding roles and resources
+    # Adds Roles & Resources in various ways.
     #
     # - Roles
     #   - Arguments
-    #     .add! Rend::Acl::Role.new("editor")                                 # Single
-    #     .add! Rend::Acl::Role.new("editor"), 'guest'                        # Single w/ Inheritance
-    #   - Options Hash
-    #     .add! :role => 'editor'                                             # Single
-    #     .add! :role => {'editor' => 'guest'}                                # Single w/ Inheritance
-    #     .add! :role => ['guest', 'editor']                                  # Multiple
-    #     .add! :role => ['guest', 'contributor', {'editor' => 'guest'}]      # Multiple w/ Inheritance
+    #     .add! Rend::Acl::Role.new("editor")                                             # Single Role
+    #     .add! Rend::Acl::Role.new("editor"), 'guest'                                    # Single Role w/ Single Inheritance
+    #     .add! Rend::Acl::Role.new("editor"), ['guest', 'contributor']                   # Single Role w/ Multiple Inheritance
+    #   - Hash
+    #     .add! :role => 'editor'                                                         # Single Role
+    #     .add! :role => {'editor' => 'guest'}                                            # Single Role w/ Single Inheritance
+    #     .add! :role => {'editor' => ['guest', 'contributor']}                           # Single Role w/ Multiple Inheritance
+    #     .add! :role => ['guest', 'editor']                                              # Multiple Roles
+    #     .add! :role => ['guest', 'contributor', {'editor' => 'guest'}]                  # Multiple Roles w/ Single Inheritance
+    #     .add! :role => ['guest', 'contributor', {'editor' => ['guest', 'contributor']}] # Multiple Roles w/ Multiple Inheritance
     # - Resources
     #   - Arguments
-    #     .add! Rend::Acl::Resource.new("city")                               # Single
-    #     .add! Rend::Acl::Resource.new("building"), 'city'                   # Single w/ Inheritance
-    #     .add! Rend::Acl::Resource.new("building"), ['city', 'building']     # Single w/ Multiple Inheritance
-    #   - Options Hash
-    #     .add! :resource => 'city'                                           # Single
-    #     .add! :resource => {'building' => 'city'}                           # Single w/ Inheritance
-    #     .add! :resource => ['city', 'building']                             # Multiple
-    #     .add! :resource => ['city', 'building', {'building' => 'city'}]     # Multiple w/ Inheritance
-    # - Mixed Roles & Resources
+    #     .add! Rend::Acl::Resource.new("city")                                           # Single Resource
+    #     .add! Rend::Acl::Resource.new("building"), 'city'                               # Single Resource w/ Inheritance
+    #   - Hash
+    #     .add! :resource => 'city'                                                       # Single Resource
+    #     .add! :resource => {'building' => 'city'}                                       # Single Resource w/ Inheritance
+    #     .add! :resource => ['city', 'building']                                         # Multiple Resources
+    #     .add! :resource => ['city', 'building', {'building' => 'city'}]                 # Multiple Resources w/ Inheritance
+    # - Combined Roles & Resources
     #     .add! :role => ['guest', {'editor' => 'guest'}], :resource => ['city', {'building' => 'city'}]
     #
     def add!(*args)
