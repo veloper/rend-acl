@@ -491,165 +491,38 @@ module Rend
     # @uses   Rend::Acl::get!()
     # @return Rend::Acl Provides a fluent interface
     def set_rule!(operation, type, roles = nil, resources = nil, privileges = nil, assertion = nil)
-        type_hint! Rend::Acl::Assertion, assertion
+      type_hint! Rend::Acl::Assertion, assertion
 
-        # ensure that the rule type is valid normalize input to uppercase
-        type = type.upcase
-        if type != TYPE_ALLOW && type != TYPE_DENY
-          raise Rend::Acl::Exception, "Unsupported rule type must be either '#{TYPE_ALLOW}' or '#{TYPE_DENY}'"
-        end
-
-        # ensure that all specified Roles exist normalize input to array of Role objects or nil
-        if !roles.is_a?(Array)
-          roles = [roles]
-        elsif roles.empty?
-          roles = [nil]
-        end
-        roles = roles.reduce([]) do |seed, role|
-          seed << (role ? role_registry.get!(role) : nil)
-        end
-
-        # ensure that all specified Resources exist normalize input to array of Resource objects or nil
-        if resources
-          resources = Array(resources)
-          resources << nil if resources.empty?
-          resources = resources.reduce([]) do |seed, resource|
-            seed << (resource ? resource!(resource) : nil)
-          end
-        else
-          # this might be used later if resource iteration is required
-          all_resources = @_resources.values.reduce([]) do |seed, r_target|
-            seed << r_target[:instance]
-          end
-        end
-
-        # normalize privileges to array
-        if privileges.nil?
-          privileges = []
-        elsif !privileges.is_a?(Array)
-          privileges = [privileges]
-        end
-
-        case operation
-
-        # add to the rules
-        when OP_ADD
-          if resources
-            # this block will iterate the provided resources
-            resources.each do |resource|
-              roles.each do |role|
-                rules = _rules(resource, role, true)
-                if privileges.empty?
-                  rules[:all_privileges] = {
-                    :type       => type,
-                    :assertion  => assertion
-                  }
-                  rules[:by_privilege_id] = {} unless rules.has_key?(:by_privilege_id)
-                else
-                  privileges.each do |privilege|
-                    rules[:by_privilege_id][privilege] = {
-                      :type       => type,
-                      :assertion  => assertion
-                    }
-                  end
-                end
-              end
-            end
-          else
-            # this block will apply to all resources in a global rule
-            roles.each do |role|
-              rules = _rules(nil, role, true)
-              if privileges.empty?
-                rules[:all_privileges] = {
-                  :type       => type,
-                  :assertion  => assertion
-                }
-              else
-                privileges.each do |privilege|
-                  rules[:by_privilege_id][privilege] = {
-                    :type       => type,
-                    :assertion  => assertion
-                  }
-                end
-              end
-            end
-          end
-        # remove from the rules
-        when OP_REMOVE
-          if resources
-            # this block will iterate the provided resources
-            resources.each do |resource|
-              roles.each do |role|
-                rules = _rules(resource, role)
-                next if rules.nil?
-                if privileges.empty?
-                  if resource.nil? && role.nil?
-                    if rules[:all_privileges][:type] == type
-                      rules.replace({
-                        :all_privileges => {
-                          :type       => TYPE_DENY,
-                          :assertion  => nil
-                        },
-                        :by_privilege_id  => {}
-                      })
-                    end
-                    next
-                  end
-                  if rules[:all_privileges].has_key?(:type) && rules[:all_privileges][:type] == type
-                    rules.delete(:all_privileges)
-                  end
-                else
-                  privileges.each do |privilege|
-                    if rules[:by_privilege_id].has_key?(privilege) && rules[:by_privilege_id][privilege][:type] == type
-                      rules[:by_privilege_id].delete(privilege)
-                    end
-                  end
-                end
-              end
-            end
-          else
-            # this block will apply to all resources in a global rule
-            roles.each do |role|
-
-              # since nil (all resources) was passed to this set_role!() call, we need
-              # clean up all the rules for the global allResources, as well as the indivually
-              # set resources (per privilege as well)
-              [nil].concat(all_resources).each do |resource|
-                rules = _rules(resource, role, true)
-                next if rules.nil?
-                if privileges.empty?
-                  if role.nil?
-                    if rules[:all_privileges][:type] == type
-                      rules.replace({
-                        :all_privileges => {
-                          :type       => TYPE_DENY,
-                          :assertion  => nil
-                        },
-                        :by_privilege_id  => {}
-                      })
-                    end
-                    next
-                  end
-
-                  if rules[:all_privileges].has_key?(:type) && rules[:all_privileges][:type] == type
-                    rules.delete(:all_privileges)
-                  end
-                else
-                  privileges.each do |privilege|
-                    if rules[:by_privilege_id].has_key?(privilege) && rules[:by_privilege_id][privilege][:type] == type
-                      rules[:by_privilege_id].delete(privilege)
-                    end
-                  end
-                end
-              end
-            end
-          end
-        else
-          raise Rend::Acl::Exception, "Unsupported operation must be either '#{OP_ADD}' or '#{OP_REMOVE}'"
-        end
-
-        self
+      # ensure that the rule type is valid normalize input to uppercase
+      type = type.upcase
+      if type != TYPE_ALLOW && type != TYPE_DENY
+        raise Rend::Acl::Exception, "Unsupported rule type must be either '#{TYPE_ALLOW}' or '#{TYPE_DENY}'"
       end
+
+      # ensure that all specified Roles exist normalize input to array of Role objects or nil
+      roles = Array(roles)
+      roles << nil if roles.empty?
+      roles = roles.reduce([]) {|seed, role| seed << (role ? role_registry.get!(role) : nil)}
+
+      # ensure that all specified Resources exist normalize input to array of Resource objects or nil
+      if resources
+        resources = Array(resources)
+        resources << nil if resources.empty?
+        resources = resources.reduce([]) {|seed, resource| seed << (resource ? resource!(resource) : nil)}
+      end
+
+      # normalize privileges to array
+      privileges = Array(privileges).compact
+
+      case operation
+      when OP_ADD     then _add_rule!(type, roles, resources, privileges, assertion)
+      when OP_REMOVE  then _remove_rule!(type, roles, resources, privileges, assertion)
+      else
+        raise Rend::Acl::Exception, "Unsupported operation must be either '#{OP_ADD}' or '#{OP_REMOVE}'"
+      end
+
+      self
+    end
 
     # Returns true if and only if the Role has access to the Resource
     #
@@ -767,6 +640,27 @@ module Rend
     def role_registry
       @_role_registry ||= Rend::Acl::Role::Registry.new
     end
+
+    # Returns an array of registered roles.
+    #
+    # Note that this method does not return instances of registered roles,
+    # but only the role identifiers.
+    #
+    # @return array of registered roles
+    def roles
+      role_registry.roles.keys
+    end
+
+    # @return array of registered resources
+    def resources
+      @_resources.keys
+    end
+
+    # == PROTECTED ================================================================================
+
+    protected
+
+    # =============================================================================================
 
     # Performs a depth-first search of the Role DAG, starting at role, in order to find a rule
     # allowing/denying role access to all privileges upon resource
@@ -1000,19 +894,101 @@ module Rend
       visitor[:by_role_id][role.id]
     end
 
-    # Returns an array of registered roles.
-    #
-    # Note that this method does not return instances of registered roles,
-    # but only the role identifiers.
-    #
-    # @return array of registered roles
-    def roles
-      role_registry.roles.keys
+    def _add_rule!(type, roles, resources, privileges, assertion)
+      if resources
+        # this block will iterate the provided resources
+        resources.each do |resource|
+          roles.each do |role|
+            rules = _rules(resource, role, true)
+            if privileges.empty?
+              rules[:all_privileges]  = {:type => type, :assertion => assertion}
+              rules[:by_privilege_id] = {} unless rules.has_key?(:by_privilege_id)
+            else
+              privileges.each do |privilege|
+                rules[:by_privilege_id][privilege] = {:type => type, :assertion => assertion}
+              end
+            end
+          end
+        end
+      else
+        # this block will apply to all resources in a global rule
+        roles.each do |role|
+          rules = _rules(nil, role, true)
+          if privileges.empty?
+            rules[:all_privileges] = {:type => type, :assertion => assertion}
+          else
+            privileges.each do |privilege|
+              rules[:by_privilege_id][privilege] = {:type => type, :assertion => assertion}
+            end
+          end
+        end
+      end
     end
 
-    # @return array of registered resources
-    def resources
-      @_resources.keys
+    def _remove_rule!(type, roles, resources, privileges, assertion)
+      if resources
+        # this block will iterate the provided resources
+        resources.each do |resource|
+          roles.each do |role|
+            rules = _rules(resource, role)
+            next if rules.nil?
+            if privileges.empty?
+              if resource.nil? && role.nil?
+                if rules[:all_privileges][:type] == type
+                  rules.replace({
+                    :all_privileges => {
+                      :type       => TYPE_DENY,
+                      :assertion  => nil
+                    },
+                    :by_privilege_id  => {}
+                  })
+                end
+                next
+              end
+              rules.delete(:all_privileges) if rules[:all_privileges][:type] == type
+            else
+              privileges.each do |privilege|
+                if rules[:by_privilege_id].has_key?(privilege) && rules[:by_privilege_id][privilege][:type] == type
+                  rules[:by_privilege_id].delete(privilege)
+                end
+              end
+            end
+          end
+        end
+      else
+        all_resources = @_resources.values.reduce([]) {|seed, r_target| seed << r_target[:instance]}
+
+        # this block will apply to all resources in a global rule
+        roles.each do |role|
+
+          # since nil (all resources) was passed to this set_role!() call, we need
+          # clean up all the rules for the global all_resources, as well as the indivually
+          # set resources (per privilege as well)
+          [nil].concat(all_resources).each do |resource|
+            rules = _rules(resource, role, true)
+            next if rules.nil?
+            if privileges.empty?
+              if role.nil?
+                if rules[:all_privileges][:type] == type
+                  rules.replace(:all_privileges => {:type => TYPE_DENY, :assertion => nil}, :by_privilege_id => {})
+                end
+                next
+              end
+
+              if rules[:all_privileges].has_key?(:type) && rules[:all_privileges][:type] == type
+                rules.delete(:all_privileges)
+              end
+            else
+              privileges.each do |privilege|
+                if rules[:by_privilege_id].has_key?(privilege) && rules[:by_privilege_id][privilege][:type] == type
+                  rules[:by_privilege_id].delete(privilege)
+                end
+              end
+            end
+          end
+        end
+      end
     end
+
   end
 end
