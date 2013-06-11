@@ -1,5 +1,9 @@
 require 'test/unit'
 require 'rend/acl'
+require 'rend/acl/mock_assertion'
+require 'yaml'
+begin; require 'turn/autorun'; rescue LoadError; end
+
 
 class AclTest < Test::Unit::TestCase
 
@@ -12,7 +16,6 @@ class AclTest < Test::Unit::TestCase
   end
 
   def test_storing_acl_data_for_persistence_with_yaml
-    require 'yaml'
     assert_use_case_1 YAML.load( YAML.dump(use_case_1) )
   end
 
@@ -772,12 +775,12 @@ class AclTest < Test::Unit::TestCase
 
   end
 
-  # [NOT IMPLEMENTED YET] Ensures that the default rule obeys its assertion
-  # def test_default_assert
-  #   @acl.deny!(nil, nil, nil, Rend::Acl::Mock_assertion.new(false))
-  #   assert_equal true, @acl.allowed?
-  #   assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
-  # end
+  # Ensures that the default rule obeys its assertion
+  def test_default_assert
+    @acl.deny!(nil, nil, nil, Rend::Acl::MockAssertion.new(false))
+    assert_equal true, @acl.allowed?
+    assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
+  end
 
   # Ensures that the only_parents argument to inherits_role? works
   # @group ZF-2502
@@ -789,9 +792,7 @@ class AclTest < Test::Unit::TestCase
   end
 
   # Returns an array of registered roles
-  # @expected_exception PHPUnit_Framework_Error
   # @group ZF-5638
-  # Porter Note: Seems like an odd test... investigate more
   def test_get_registered_roles
     @acl.add_role!('developer')
 
@@ -803,14 +804,14 @@ class AclTest < Test::Unit::TestCase
   # Confirm that deleting a role after allowing access to all roles
   # raise undefined index error
   # @group ZF-5700
-  # Porter Note: Seems like an odd test... investigate more
+  # TODO: Does this test matter in ruby? -- Daniel Doezema
   def test_removing_role_after_it_was_allowed_access_to_all_resources_gives_error
     @acl.add_role!(Rend::Acl::Role.new('test0'))
     @acl.add_role!(Rend::Acl::Role.new('test1'))
     @acl.add_role!(Rend::Acl::Role.new('test2'))
     @acl.add_resource!(Rend::Acl::Resource.new('Test'))
 
-    @acl.allow!(nil,'Test','xxx')
+    @acl.allow!(nil, 'Test','xxx')
 
     # error test
     @acl.remove_role!('test0')
@@ -822,7 +823,7 @@ class AclTest < Test::Unit::TestCase
   # @group ZF-8039
   # Meant to test for the (in)existance of this notice:
   #   "Notice: Undefined index: all_privileges in lib/Zend/Acl.php on line 682"
-  # Porter Note: Seems like an odd test... investigate more
+  # TODO: Does this test matter in ruby? -- Daniel Doezema
   def test_method_remove_allow_does_not_throw_notice
     acl = Rend::Acl.new
     acl.add_role!('admin')
@@ -955,105 +956,70 @@ class AclTest < Test::Unit::TestCase
     assert_equal false, @acl.allowed?('guest', 'blogpost', 'read')
   end
 
-  #### [TESTS TO BE IMPLEMENTED LATER] ####
+  # Ensures that assertions on privileges work properly
+  def test_privilege_assert
+    @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::MockAssertion.new(true))
+    assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
 
-  # # Ensures that assertions on privileges work properly
-  # def test_privilege_assert
-  #   @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::Mock_assertion.new(true))
-  #   assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
-  #   @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::Mock_assertion.new(false))
-  #   assert_equal false, @acl.allowed?(nil, nil, 'some_privilege')
-  # end
+    @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::MockAssertion.new(false))
+    assert_equal false, @acl.allowed?(nil, nil, 'some_privilege')
+  end
 
-  # # Ensures that assertions on privileges work properly for a particular Role
-  # def test_role_privilege_assert
-  #   role_guest = Rend::Acl::Role.new('guest')
-  #   @acl.add_role!(role_guest)
-  #              .allow!(role_guest, nil, 'some_privilege', Rend::Acl::Mock_assertion.new(true))
-  #   assert_equal true, @acl.allowed?(role_guest, nil, 'some_privilege')
-  #   @acl.allow!(role_guest, nil, 'some_privilege', Rend::Acl::Mock_assertion.new(false))
-  #   assert_equal false, @acl.allowed?(role_guest, nil, 'some_privilege')
-  # end
+  # Ensures that assertions on privileges work properly for a particular Role
+  def test_role_privilege_assert
+    role_guest = Rend::Acl::Role.new('guest')
+    @acl.add_role!(role_guest)
+
+    @acl.allow!(role_guest, nil, 'some_privilege', Rend::Acl::MockAssertion.new(true))
+    assert_equal true, @acl.allowed?(role_guest, nil, 'some_privilege')
+
+    @acl.allow!(role_guest, nil, 'some_privilege', Rend::Acl::MockAssertion.new(false))
+    assert_equal false, @acl.allowed?(role_guest, nil, 'some_privilege')
+  end
 
   # # Ensures that removing the default deny rule results in assertion method being removed
-  # def test_remove_default_deny_assert
-  #   @acl.deny!(nil, nil, nil, Rend::Acl::Mock_assertion.new(false))
-  #   assert_equal true, @acl.allowed?
-  #   @acl.remove_deny
-  #   assert_equal false, @acl.allowed?
-  # end
+  def test_remove_default_deny_assert
+    @acl.deny!(nil, nil, nil, Rend::Acl::MockAssertion.new(false))
+    assert_equal true, @acl.allowed?
+    @acl.remove_deny!
+    assert_equal false, @acl.allowed?
+  end
 
 
-  # # @group ZF-1721
-  # def test_acl_assertions_get_proper_role_when_inheritence_is_used
-  #   acl = this._load_use_case1
+  # @group ZF-1721
+  def test_acl_assertions_get_proper_role_when_inheritence_is_used
+    assertion = Rend::Acl::MockAssertion.new(true)
 
-  #   user = Rend::Acl::Role.new('publisher')
-  #   blog_post = Rend::Acl::Resource.new('blog_post')
+    @acl.add! :role => ['guest', {'contributor' => 'guest'}, {'publisher' => 'contributor'}, 'admin'], :resource => 'blog_post'
 
-  #   # @var Zend_Acl_Use_case1_User_is_blog_post_owner_assertion
-  #   assertion = acl.custom_assertion
+    @acl.allow!('guest',        'blog_post', 'view')
+    @acl.allow!('contributor',  'blog_post', 'contribute')
+    @acl.allow!('contributor',  'blog_post', 'modify', assertion)
+    @acl.allow!('publisher',    'blog_post', 'publish')
 
-  #   assert_equal true, acl.is_allowed(user, blog_post, 'modify')
+    assert_equal true,        @acl.allowed?("publisher", "blog_post", "modify")
+    assert_equal 'publisher', assertion.last_role.id
+  end
 
-  #   assert_equal 'publisher', assertion.last_assert_role.id
+  # @group ZF-1722
+  def test_acl_assertions_get_original_is_allowed_objects
+    # I'm invalidating this test as role.id and resource.id are both attr_reader properties -- Daniel Doezema
+  end
 
-  # end
+  # @group ZF-7973
+  def test_acl_passes_privilege_to_assert_class
+    assertion = Rend::Acl::MockAssertion.new do |acl, role, resource, privilege|
+      privilege == "read"
+    end
 
-  # # @group ZF-1722
-  # def test_acl_assertions_get_original_is_allowed_objects
-  #   acl = this._load_use_case1
+    @acl.add! :role => 'guest', :resource => 'blog_post'
+    @acl.allow!('guest', nil, nil, assertion)
 
-  #   user = Rend::Acl_Use_case1::User.new
-  #   blog_post = Rend::Acl_Use_case1::Blog_post.new
-
-  #   assert_equal true, acl.is_allowed(user, blog_post, 'view')
-
-  #   /**
-  #    * @var Zend_Acl_Use_case1_User_is_blog_post_owner_assertion
-  #    */
-  #   assertion = acl.custom_assertion
-
-  #   assertion.assert_return_value = true
-  #   user.role = 'contributor'
-  #   assert_equal true, acl.is_allowed(user, blog_post, 'modify'), 'Assertion should return true'
-  #   assertion.assert_return_value = false
-  #   assert_equal false, acl.is_allowed(user, blog_post, 'modify'), 'Assertion should return false'
-
-  #   # check to see if the last assertion has the proper objets
-  #   assert_kind_of Zend_Acl_Use_case1_User, assertion.last_assert_role, 'Assertion did not recieve proper role object'
-  #   assert_kind_of Zend_Acl_Use_case1_Blog_post, assertion.last_assert_resource, 'Assertion did not recieve proper resource object'
-
-  # end
-
-  # # @group ZF-7973
-  # def test_acl_passes_privilege_to_assert_class {
-  #   require_once dirname(__FILE__) . '/_files/Assertion_z_f7973.php'
-  #   assertion = Rend::Acl_Acl_test::Assertion_z_f7973.new
-
-  #   acl = Rend::Acl.new
-  #   acl.add_role!('role')
-  #   acl.add_resource!('resource')
-  #   acl.allow!('role',nil,nil,assertion)
-  #   allowed = acl.is_allowed('role','resource','privilege',assertion)
-
-  #   assert_equal true, allowed
-  # end
+    assert @acl.allowed?('guest', 'blog_post', 'read')
+  end
 
 
   protected
-
-  # def use_case_2
-  #   @acl.add_role!('guest')
-  #   @acl.add_role!('contributor', 'guest')
-  #   @acl.add_role!('publisher', 'contributor')
-  #   @acl.add_role!('admin')
-  #   @acl.add_resource!('blogPost')
-  #   @acl.allow!('guest', 'blogPost', 'view')
-  #   @acl.allow!('contributor', 'blogPost', 'contribute')
-  #   @acl.allow!('contributor', 'blogPost', 'modify', @acl.customAssertion)
-  #   @acl.allow!('publisher', 'blogPost', 'publish')
-  # end
 
   # http:#framework.zend.com/manual/1.12/en/zend.acl.introduction.html#zend.acl.introduction.role_registry
   def use_case_1

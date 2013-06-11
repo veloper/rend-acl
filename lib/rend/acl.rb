@@ -4,6 +4,7 @@ require 'rend/acl/version'
 require 'rend/acl/exception'
 require 'rend/acl/role'
 require 'rend/acl/resource'
+require 'rend/acl/assertion'
 
 module Rend
   class Acl
@@ -36,7 +37,8 @@ module Rend
         :all_resources => {
           :all_roles => {
             :all_privileges => {
-              :type => TYPE_DENY
+              :type       => TYPE_DENY,
+              :assertion  => nil
             },
             :by_privilege_id => {}
           },
@@ -284,7 +286,7 @@ module Rend
     #
     # @param  Rend::Acl::Resource|string resource
     # @param  Rend::Acl::Resource|string inherit
-    # @param  boolean                    onlyParent
+    # @param  boolean                    only_parent
     # @throws Rend_Acl_Resource_Registry_Exception
     # @return boolean
     def inherits_resource?(resource, inherit, only_parent = false)
@@ -358,42 +360,50 @@ module Rend
     #
     # @param  Rend::Acl::Role|string|array     roles
     # @param  Rend::Acl::Resource|string|array resources
-    # @param  string|array                        privileges
+    # @param  string|array                     privileges
+    # @param  Rend::Acl::Assertion             assertion
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
-    def allow!(roles = nil, resources = nil, privileges = nil)
+    def allow!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
         roles       = options.fetch(:role,      options.fetch(:roles, nil))
         resources   = options.fetch(:resource,  options.fetch(:resources, nil))
         privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
       resources  = nil if resources  == :all
       privileges = nil if privileges == :all
 
-      set_rule!(OP_ADD, TYPE_ALLOW, roles, resources, privileges)
+      type_hint! Rend::Acl::Assertion, assertion
+
+      set_rule!(OP_ADD, TYPE_ALLOW, roles, resources, privileges, assertion)
     end
 
     # Adds a "deny" rule to the ACL
     #
     # @param  Rend::Acl::Role|string|array     roles
     # @param  Rend::Acl::Resource|string|array resources
-    # @param  string|array                        privileges
+    # @param  string|array                     privileges
+    # @param  Rend::Acl::Assertion             assertion
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
-    def deny!(roles = nil, resources = nil, privileges = nil)
+    def deny!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
         roles       = options.fetch(:role,      options.fetch(:roles, nil))
         resources   = options.fetch(:resource,  options.fetch(:resources, nil))
         privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
       resources  = nil if resources  == :all
       privileges = nil if privileges == :all
 
-      set_rule!(OP_ADD, TYPE_DENY, roles, resources, privileges)
+      type_hint! Rend::Acl::Assertion, assertion
+
+      set_rule!(OP_ADD, TYPE_DENY, roles, resources, privileges, assertion)
     end
 
     # Removes "allow" permissions from the ACL
@@ -468,20 +478,23 @@ module Rend
     # privilege with a string, and multiple privileges may be specified as an array of strings.
     #
     #
-    # @param  string                              operation
-    # @param  string                              type
-    # @param  Rend::Acl::Role|string|array     roles
-    # @param  Rend::Acl::Resource|string|array resources
-    # @param  string|array                        privileges
+    # @param  string                            operation
+    # @param  string                            type
+    # @param  Rend::Acl::Role|string|array      roles
+    # @param  Rend::Acl::Resource|string|array  resources
+    # @param  string|array                      privileges
+    # @param  Rend::Acl::Assert::Interface      assertion
     # @throws Rend::Acl::Exception
     # @uses   Rend::Acl::Role::Registry::get!()
     # @uses   Rend::Acl::get!()
     # @return Rend::Acl Provides a fluent interface
-    def set_rule!(operation, type, roles = nil, resources = nil, privileges = nil)
+    def set_rule!(operation, type, roles = nil, resources = nil, privileges = nil, assertion = nil)
+        type_hint! Rend::Acl::Assertion, assertion
+
         # ensure that the rule type is valid normalize input to uppercase
         type = type.upcase
         if type != TYPE_ALLOW && type != TYPE_DENY
-          raise Zend::Acl::Exception, "Unsupported rule type must be either '#{TYPE_ALLOW}' or '#{TYPE_DENY}'"
+          raise Rend::Acl::Exception, "Unsupported rule type must be either '#{TYPE_ALLOW}' or '#{TYPE_DENY}'"
         end
 
         # ensure that all specified Roles exist normalize input to array of Role objects or nil
@@ -525,11 +538,17 @@ module Rend
               roles.each do |role|
                 rules = _rules(resource, role, true)
                 if privileges.empty?
-                  rules[:all_privileges]  = {:type => type}
+                  rules[:all_privileges] = {
+                    :type       => type,
+                    :assertion  => assertion
+                  }
                   rules[:by_privilege_id] = {} unless rules.has_key?(:by_privilege_id)
                 else
                   privileges.each do |privilege|
-                    rules[:by_privilege_id][privilege] = {:type => type}
+                    rules[:by_privilege_id][privilege] = {
+                      :type       => type,
+                      :assertion  => assertion
+                    }
                   end
                 end
               end
@@ -539,10 +558,16 @@ module Rend
             roles.each do |role|
               rules = _rules(nil, role, true)
               if privileges.empty?
-                rules[:all_privileges] = {:type => type}
+                rules[:all_privileges] = {
+                  :type       => type,
+                  :assertion  => assertion
+                }
               else
                 privileges.each do |privilege|
-                  rules[:by_privilege_id][privilege] = {:type => type}
+                  rules[:by_privilege_id][privilege] = {
+                    :type       => type,
+                    :assertion  => assertion
+                  }
                 end
               end
             end
@@ -559,7 +584,10 @@ module Rend
                   if resource.nil? && role.nil?
                     if rules[:all_privileges][:type] == type
                       rules.replace({
-                        :all_privileges   => { :type => TYPE_DENY },
+                        :all_privileges => {
+                          :type       => TYPE_DENY,
+                          :assertion  => nil
+                        },
                         :by_privilege_id  => {}
                       })
                     end
@@ -591,7 +619,10 @@ module Rend
                   if role.nil?
                     if rules[:all_privileges][:type] == type
                       rules.replace({
-                        :all_privileges   => { :type => TYPE_DENY },
+                        :all_privileges => {
+                          :type       => TYPE_DENY,
+                          :assertion  => nil
+                        },
                         :by_privilege_id  => {}
                       })
                     end
@@ -898,19 +929,19 @@ module Rend
         rule = rules[:by_privilege_id][privilege]
       end
 
-      # check assertion first
-      assertion_value = nil
-      if rule[:assert]
-          # assertion = rule[:assert]
-          # assertion_value = assertion.assert(
-          #   self,
-          #   (@_isAllowedRole instanceof Zend_Acl_Role_Interface) ? @_isAllowedRole : role,
-          #   (@_isAllowedResource instanceof Zend_Acl_Resource_Interface) ? @_isAllowedResource : resource,
-          #   @_isAllowedPrivilege
-          # )
+      # Check assertion first
+      assertion_passed = nil
+      if rule[:assertion]
+          args = {
+            :acl        => self,
+            :role       => @_is_allowed_role.is_a?(Rend::Acl::Role)         ? @_is_allowed_role     : role,
+            :resource   => @_is_allowed_resource.is_a?(Rend::Acl::Resource) ? @_is_allowed_resource : resource,
+            :privilege  => @_is_allowed_privilege
+          }
+          assertion_passed = rule[:assertion].pass?(args[:acl], args[:role], args[:resource], args[:privilege])
       end
 
-      if rule[:assert].nil? || assertion_value
+      if rule[:assertion].nil? || assertion_passed == true
         rule[:type]
       elsif resource != nil || role != nil || privilege != nil
         nil
