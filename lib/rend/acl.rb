@@ -367,9 +367,9 @@ module Rend
     def allow!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
-        roles       = options.fetch(:role,      options.fetch(:roles, nil))
-        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
-        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        roles       = options.fetch(:role,      nil)
+        resources   = options.fetch(:resource,  nil)
+        privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
@@ -392,9 +392,9 @@ module Rend
     def deny!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
-        roles       = options.fetch(:role,      options.fetch(:roles, nil))
-        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
-        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        roles       = options.fetch(:role,      nil)
+        resources   = options.fetch(:resource,  nil)
+        privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
@@ -413,18 +413,19 @@ module Rend
     # @param  string|array                     privileges
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
-    def remove_allow!(roles = nil, resources = nil, privileges = nil)
+    def remove_allow!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
-        roles       = options.fetch(:role,      options.fetch(:roles, nil))
-        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
-        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        roles       = options.fetch(:role,      nil)
+        resources   = options.fetch(:resource,  nil)
+        privileges  = options.fetch(:privilege, nil)
+        assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
       resources  = nil if resources  == :all
       privileges = nil if privileges == :all
 
-      set_rule!(OP_REMOVE, TYPE_ALLOW, roles, resources, privileges)
+      set_rule!(OP_REMOVE, TYPE_ALLOW, roles, resources, privileges, assertion)
     end
 
     # Removes "deny" restrictions from the ACL
@@ -434,18 +435,19 @@ module Rend
     # @param  string|array                     privileges
     # @uses   Rend::Acl::set_rule!()
     # @return Rend::Acl Provides a fluent interface
-    def remove_deny!(roles = nil, resources = nil, privileges = nil)
+    def remove_deny!(roles = nil, resources = nil, privileges = nil, assertion = nil)
       if roles.is_a?(Hash)
         options     = roles
-        roles       = options.fetch(:role,      options.fetch(:roles, nil))
-        resources   = options.fetch(:resource,  options.fetch(:resources, nil))
-        privileges  = options.fetch(:privilege, options.fetch(:privileges, nil))
+        roles       = options.fetch(:role,      nil)
+        resources   = options.fetch(:resource,  nil)
+        privileges  = options.fetch(:privilege, nil)
+        assertion   = options.fetch(:assertion, nil)
       end
       roles      = nil if roles      == :all
       resources  = nil if resources  == :all
       privileges = nil if privileges == :all
 
-      set_rule!(OP_REMOVE, TYPE_DENY, roles, resources, privileges)
+      set_rule!(OP_REMOVE, TYPE_DENY, roles, resources, privileges, assertion)
     end
 
     # Performs operations on ACL rules
