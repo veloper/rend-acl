@@ -1,8 +1,14 @@
-require 'test/unit'
+# Gem
 require 'rend/acl'
-require 'rend/acl/mock_assertion'
-require 'yaml'
-begin; require 'turn/autorun'; rescue LoadError; end
+
+# Testing
+require 'test/unit'
+require 'turn/autorun'
+
+# Testing Support
+require 'support/mock_assertion'
+require 'support/passing_assertion'
+require 'support/failing_assertion'
 
 # https://coveralls.io Integration
 require 'coveralls'
@@ -14,16 +20,28 @@ class AclTest < Test::Unit::TestCase
     @acl = Rend::Acl.new
   end
 
+  def test_access_is_limited_by_privilege
+    @acl.add! :role => "driver", :resource => "car"
+    @acl.allow! :role => "driver", :resource => "car", :privilege => "sell"
+    assert_equal false, @acl.allowed?("driver", "car")
+    assert_equal true, @acl.allowed?("driver", "car", "sell")
+  end
+
   def test_storing_acl_data_for_persistence_with_marshal
-    assert_use_case_1 Marshal.load( Marshal.dump(use_case_1) )
+    assert_use_case_2 Marshal.load( Marshal.dump(use_case_2) )
   end
 
   def test_storing_acl_data_for_persistence_with_yaml
-    assert_use_case_1 YAML.load( YAML.dump(use_case_1) )
+    require 'yaml'
+    assert_use_case_2 YAML.load( YAML.dump(use_case_2) )
   end
 
   def test_use_case_1
     assert_use_case_1(use_case_1)
+  end
+
+  def test_use_case_2
+    assert_use_case_2(use_case_2)
   end
 
   def test_add_raises_argument_error_with_no_args
@@ -141,7 +159,54 @@ class AclTest < Test::Unit::TestCase
     assert @acl.inherits_resource? "room", "building"
   end
 
-  # == Orignal Zend_Acl Tests Below ==
+  def test_alternate_syntax_hash_syntax
+    @acl.add!(
+      :resource  => %w[car motorcycle plane boat bike],
+      :role      => ["valet", "owner", "thief", "me"]
+    )
+    @acl.allow! :resource => "bike"
+    @acl.allow! :privilege => "clean"
+    @acl.allow! :role => "valet", :resource => %w[car motorcycle], :privilege => %w[park open]
+    @acl.allow! :role => "thief", :resource => %w[car motorcycle boat]
+    @acl.allow! :role => "owner"
+
+    # Nil permutations for :role, :resource, :privilege
+    assert_equal true, @acl.allowed?(:role => "owner")
+    assert_equal true, @acl.allowed?(:role => "owner", :resource => nil)
+    assert_equal true, @acl.allowed?(:role => "owner", :resource => nil, :privilege => nil)
+    assert_equal true, @acl.allowed?(:resource => "bike")
+    assert_equal true, @acl.allowed?(:resource => "bike", :role => nil)
+    assert_equal true, @acl.allowed?(:resource => "bike", :role => nil, :privilege => nil)
+    assert_equal true, @acl.allowed?(:privilege => "clean")
+    assert_equal true, @acl.allowed?(:privilege => "clean", :resource => nil)
+    assert_equal true, @acl.allowed?(:privilege => "clean", :resource => nil, :role => nil)
+
+    # Spot Checks
+    assert_equal true,  @acl.allowed?(:role => "valet", :privilege => "clean")
+    assert_equal true,  @acl.allowed?(:role => "valet", :resource => "bike")
+    assert_equal true,  @acl.allowed?(:role => "valet", :resource => "car", :privilege => "park")
+    assert_equal true,  @acl.allowed?(:role => "valet", :resource => "car", :privilege => "open")
+    assert_equal true,  @acl.allowed?(:role => "valet", :resource => "motorcycle", :privilege => "park")
+    assert_equal true,  @acl.allowed?(:role => "valet", :resource => "motorcycle", :privilege => "open")
+    assert_equal false, @acl.allowed?(:role => "valet", :privilege => "park")
+    assert_equal false, @acl.allowed?(:role => "valet", :privilege => "open")
+    assert_equal false, @acl.allowed?(:role => "valet", :resource => "plane", :privilege => "park")
+    assert_equal false, @acl.allowed?(:role => "valet", :resource => "plane", :privilege => "open")
+  end
+
+  def test_denied_method_is_inverse_of_allowed_method
+    acl = use_case_1
+    assert_equal true,  acl.denied?('staff'         , 'newsletter'   , 'publish') # allowed
+    assert_equal false, acl.denied?('marketing'     , 'newsletter'   , 'publish') # denied
+    assert_equal true,  acl.denied?('staff'         , 'latest'       , 'publish') # allowed
+    assert_equal false, acl.denied?('marketing'     , 'latest'       , 'publish') # denied
+    assert_equal false, acl.denied?('marketing'     , 'latest'       , 'archive') # denied
+    assert_equal true,  acl.denied?('marketing'     , 'latest'       , 'revise')  # allowed
+    assert_equal true,  acl.denied?('editor'        , 'announcement' , 'archive') # allowed
+    assert_equal true,  acl.denied?('administrator' , 'announcement' , 'archive') # allowed
+  end
+
+  # == Tests From Zend_Acl Suite Below ==
 
   # Ensures that basic addition and retrieval of a single Role works
   def test_role_registry_add_and_get_one
@@ -619,6 +684,26 @@ class AclTest < Test::Unit::TestCase
     assert_equal false, @acl.allowed?(nil, 'area')
   end
 
+  def test_basic_example
+    @acl = Rend::Acl.new
+
+    @acl.add! :role => ["Passenger", "Driver", "Mechanic"], :resource => ["Car", "Boat", "Train"]
+
+    @acl.allow! :role => "Driver", :resource => "Car"
+    @acl.allow! :role => "Mechanic", :privilege => "Repair"
+    @acl.allow! :privilege  => "Look"  # Allow any role the ability to Look at any resource.
+    @acl.deny!  :resource   => "Train" # Deny all roles access to the Train resource.
+
+
+    assert_equal true,  @acl.allowed?(:role => "Driver",    :resource => "Car")
+    assert_equal false, @acl.allowed?(:role => "Passenger", :resource => "Car")
+    assert_equal false, @acl.allowed?(:role => "Mechanic",  :resource => "Car")
+    assert_equal true,  @acl.allowed?(:role => "Mechanic",  :privilege => "Repair")
+    assert_equal true,  @acl.allowed?(:role => "Passenger", :privilege => "Look")
+    assert_equal false, @acl.allowed?(:role => "Passenger", :resource => "Train")
+    assert_equal false, @acl.allowed?(:role => "Mechanic",  :resource => "Train", :privilege => "Repair")
+  end
+
   # Ensures that an example for a content management system is operable
   def test_cms_example
     # Add some roles to the Role registry
@@ -780,7 +865,7 @@ class AclTest < Test::Unit::TestCase
 
   # Ensures that the default rule obeys its assertion
   def test_default_assert
-    @acl.deny!(nil, nil, nil, Rend::Acl::MockAssertion.new(false))
+    @acl.deny!(nil, nil, nil, MockAssertion.new(false))
     assert_equal true, @acl.allowed?
     assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
   end
@@ -961,10 +1046,10 @@ class AclTest < Test::Unit::TestCase
 
   # Ensures that assertions on privileges work properly
   def test_privilege_assert
-    @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::MockAssertion.new(true))
+    @acl.allow!(nil, nil, 'some_privilege', MockAssertion.new(true))
     assert_equal true, @acl.allowed?(nil, nil, 'some_privilege')
 
-    @acl.allow!(nil, nil, 'some_privilege', Rend::Acl::MockAssertion.new(false))
+    @acl.allow!(nil, nil, 'some_privilege', MockAssertion.new(false))
     assert_equal false, @acl.allowed?(nil, nil, 'some_privilege')
   end
 
@@ -973,16 +1058,16 @@ class AclTest < Test::Unit::TestCase
     role_guest = Rend::Acl::Role.new('guest')
     @acl.add_role!(role_guest)
 
-    @acl.allow!(role_guest, nil, 'some_privilege', Rend::Acl::MockAssertion.new(true))
+    @acl.allow!(role_guest, nil, 'some_privilege', MockAssertion.new(true))
     assert_equal true, @acl.allowed?(role_guest, nil, 'some_privilege')
 
-    @acl.allow!(role_guest, nil, 'some_privilege', Rend::Acl::MockAssertion.new(false))
+    @acl.allow!(role_guest, nil, 'some_privilege', MockAssertion.new(false))
     assert_equal false, @acl.allowed?(role_guest, nil, 'some_privilege')
   end
 
   # # Ensures that removing the default deny rule results in assertion method being removed
   def test_remove_default_deny_assert
-    @acl.deny!(nil, nil, nil, Rend::Acl::MockAssertion.new(false))
+    @acl.deny!(nil, nil, nil, MockAssertion.new(false))
     assert_equal true, @acl.allowed?
     @acl.remove_deny!
     assert_equal false, @acl.allowed?
@@ -991,7 +1076,7 @@ class AclTest < Test::Unit::TestCase
 
   # @group ZF-1721
   def test_acl_assertions_get_proper_role_when_inheritence_is_used
-    assertion = Rend::Acl::MockAssertion.new(true)
+    assertion = MockAssertion.new(true)
 
     @acl.add! :role => ['guest', {'contributor' => 'guest'}, {'publisher' => 'contributor'}, 'admin'], :resource => 'blog_post'
 
@@ -1011,7 +1096,7 @@ class AclTest < Test::Unit::TestCase
 
   # @group ZF-7973
   def test_acl_passes_privilege_to_assert_class
-    assertion = Rend::Acl::MockAssertion.new do |acl, role, resource, privilege|
+    assertion = MockAssertion.new do |acl, role, resource, privilege|
       privilege == "read"
     end
 
@@ -1081,4 +1166,18 @@ class AclTest < Test::Unit::TestCase
     assert_equal false, acl.allowed?('editor'        , 'announcement' , 'archive') # denied
     assert_equal false, acl.allowed?('administrator' , 'announcement' , 'archive') # denied
   end
+
+  def use_case_2
+    acl = use_case_1
+    acl.allow! :privilege => 'passing_assertion', :assertion => PassingAssertion.new
+    acl.allow! :privilege => 'failing_assertion', :assertion => FailingAssertion.new
+    acl
+  end
+
+  def assert_use_case_2(acl)
+    assert_use_case_1(acl)
+    assert_equal true,  acl.allowed?(nil, nil, 'passing_assertion') # allowed
+    assert_equal false, acl.allowed?(nil, nil, 'failing_assertion') # denied
+  end
+
 end
