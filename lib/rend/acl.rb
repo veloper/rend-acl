@@ -372,9 +372,6 @@ module Rend
         privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
-      roles      = nil if roles      == :all
-      resources  = nil if resources  == :all
-      privileges = nil if privileges == :all
 
       type_hint! Rend::Acl::Assertion, assertion
 
@@ -397,9 +394,6 @@ module Rend
         privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
-      roles      = nil if roles      == :all
-      resources  = nil if resources  == :all
-      privileges = nil if privileges == :all
 
       type_hint! Rend::Acl::Assertion, assertion
 
@@ -421,9 +415,6 @@ module Rend
         privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
-      roles      = nil if roles      == :all
-      resources  = nil if resources  == :all
-      privileges = nil if privileges == :all
 
       set_rule!(OP_REMOVE, TYPE_ALLOW, roles, resources, privileges, assertion)
     end
@@ -443,9 +434,6 @@ module Rend
         privileges  = options.fetch(:privilege, nil)
         assertion   = options.fetch(:assertion, nil)
       end
-      roles      = nil if roles      == :all
-      resources  = nil if resources  == :all
-      privileges = nil if privileges == :all
 
       set_rule!(OP_REMOVE, TYPE_DENY, roles, resources, privileges, assertion)
     end
@@ -563,11 +551,6 @@ module Rend
         resource  = options.fetch(:resource,  nil)
         privilege = options.fetch(:privilege, nil)
       end
-
-      # Readability
-      role      = nil if role      == :all
-      resource  = nil if resource  == :all
-      privilege = nil if privilege == :all
 
       if role
         # keep track of originally called role
