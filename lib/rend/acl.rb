@@ -482,7 +482,6 @@ module Rend
       type_hint! Rend::Acl::Assertion, assertion
 
       # ensure that the rule type is valid normalize input to uppercase
-      type = type.upcase
       if type != TYPE_ALLOW && type != TYPE_DENY
         raise Rend::Acl::Exception, "Unsupported rule type must be either '#{TYPE_ALLOW}' or '#{TYPE_DENY}'"
       end
