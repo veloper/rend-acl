@@ -2,8 +2,7 @@
 require 'rend/acl'
 
 # Testing
-require 'test/unit'
-require 'turn/autorun'
+require 'minitest/autorun'
 
 # Testing Support
 require 'support/mock_assertion'
@@ -14,7 +13,7 @@ require 'support/failing_assertion'
 require 'coveralls'
 Coveralls.wear!
 
-class AclTest < Test::Unit::TestCase
+class AclTest < Minitest::Test
 
   def setup
     @acl = Rend::Acl.new
