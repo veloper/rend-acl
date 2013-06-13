@@ -4,6 +4,9 @@ require 'rend/acl/mock_assertion'
 require 'yaml'
 begin; require 'turn/autorun'; rescue LoadError; end
 
+# https://coveralls.io Integration
+require 'coveralls'
+Coveralls.wear!
 
 class AclTest < Test::Unit::TestCase
 
