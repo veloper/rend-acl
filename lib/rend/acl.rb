@@ -614,6 +614,11 @@ module Rend
       end
     end
 
+    # Inverse of allowed? method
+    def denied?(*args)
+      !allowed?(*args)
+    end
+
     # Returns the Role registry for this ACL
     #
     # If no Role registry has been created yet, a new default Role registry
