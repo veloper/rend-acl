@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = Rend::Acl::Version::STRING
   spec.authors       = ["Daniel Doezema"]
   spec.email         = ["daniel.doezema@gmail.com"]
-  spec.description   = "A port of Zend_Acl with modifications made to bring the api more inline with Ruby conventions."
+  spec.description   = "A port of Zend_Acl with modifications made to bring the API more inline with Ruby conventions."
   spec.summary       = "rend-acl-#{Rend::Acl::Version::STRING}"
   spec.homepage      = "https://github.com/veloper/rend-acl"
   spec.license       = "New-BSD"
@@ -24,7 +24,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "turn"
 
   dependency_gems = ['rend-core']
-
   dependency_gems.each do |gem_name|
     if Rend::Acl::Version::STRING =~ /[a-zA-Z]+/
       spec.add_runtime_dependency "#{gem_name}", "= #{Rend::Acl::Version::STRING}"
