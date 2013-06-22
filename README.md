@@ -45,7 +45,7 @@ These terms and concepts become easier to understand when translated into plain 
 # ==> Initialize ACL Object
 @acl = Rend::Acl.new
 
-# ==> Define Roles & Resources
+# ==> Add Roles & Resources to ACL
 @acl.add! :role     => ["Passenger", "Driver", "Mechanic"],
           :resource => ["Car", "Boat", "Train"]
 
@@ -63,8 +63,7 @@ These terms and concepts become easier to understand when translated into plain 
 # Translation: Deny all Roles any access to the "Train" Resource.
 @acl.deny! :resource => "Train"
 
-# ==> Query the ACL
-
+# ==> Querying
 @acl.allowed?(:role => "Driver",    :resource => "Car")                           # TRUE
 @acl.allowed?(:role => "Passenger", :resource => "Car")                           # FALSE
 @acl.allowed?(:role => "Mechanic",  :resource => "Car")                           # FALSE
@@ -85,12 +84,11 @@ Install this gem directly using...
     gem 'rend-acl', '~> 0.0.4'
 
 
-
 ## Contributing
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes **(with passing tests!)** (`git commit -am 'Add some feature'`)
+3. Commit your changes **(with passing tests please!)** (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
 6. ???
