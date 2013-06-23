@@ -1,6 +1,6 @@
-require 'test_helper'
+require 'helper'
 
-class WikiPagesResourcesTest < MiniTest::Unit::TestCase
+class WikiPagesResourcesTest < Minitest::Test
 
     def setup
       @acl = Rend::Acl.new
