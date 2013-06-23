@@ -1,3 +1,7 @@
+# https://coveralls.io Integration
+require 'coveralls'
+Coveralls.wear_merged!
+
 # Gem
 require 'rend/acl'
 
@@ -13,7 +17,3 @@ require "minitest/autorun"
 if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.9.2')
   begin; require 'turn/autorun'; rescue LoadError; end
 end
-
-# https://coveralls.io Integration
-require 'coveralls'
-Coveralls.wear!
