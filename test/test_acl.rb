@@ -1,17 +1,4 @@
-# Gem
-require 'rend/acl'
-
-# Testing
-require 'minitest/autorun'
-
-# Testing Support
-require 'support/mock_assertion'
-require 'support/passing_assertion'
-require 'support/failing_assertion'
-
-# https://coveralls.io Integration
-require 'coveralls'
-Coveralls.wear!
+require 'test_helper'
 
 class AclTest < Minitest::Test
 
