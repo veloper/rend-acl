@@ -2,8 +2,6 @@ require 'helper'
 
 class AclTest < Minitest::Test
 
-  include_exams!
-
   def setup
     @acl = Rend::Acl.new
   end
