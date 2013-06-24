@@ -1,6 +1,6 @@
 require 'helper'
 
-class AclExamplesTest < Minitest::Test
+class DocumentationExamplesTest < Minitest::Test
 
   def setup
     @acl = Rend::Acl.new
