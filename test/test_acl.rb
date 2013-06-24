@@ -1,6 +1,6 @@
-require 'test_helper'
+require 'helper'
 
-class AclTest < MiniTest::Unit::TestCase
+class AclTest < Minitest::Test
 
   def setup
     @acl = Rend::Acl.new

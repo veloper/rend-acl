@@ -1,5 +1,16 @@
 # Change Log
 
+### Version 0.0.5 - June 24th, 2013
+
+* Testing
+    * Added `Minitest` gem as development dependency
+    * Removed `Turn` gem development dependency.
+    * Added Travis CI.
+    * Added Coveralls.
+
+* Documentation
+    * Added `/wiki/pages` directories.
+
 ### Version 0.0.4 - June 11th, 2013
 
 * Assertions
@@ -20,7 +31,7 @@
 
     * `:role`
     * `:resource`
-    * `:prilvilege`
+    * `:privilege`
     * `:assertion` -- _Not utilized in `.allowed?()` method._
 
 ### Version <= 0.0.3

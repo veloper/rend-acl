@@ -1,6 +1,4 @@
-# Resources
 A ***Resource*** is simply an object to which access is controlled.
-
 
 ## Resource Class
 Rend-Acl provides the `Rend::Acl::Resource` class as a basic resource implementation for developers to use and/or extend as needed.
@@ -36,4 +34,4 @@ mayor_role = Rend::Acl::Role.new("mayor")
 @acl.allowed? :role => mayor_role, :resource => city_resource     # => TRUE, via explicitly set rule.
 @acl.allowed? :role => mayor_role, :resource => building_resource # => TRUE, via resource rule inheritance
 ```
-> **Example Test:** `rend-acl/test/test_wiki_pages_resources.rb#test_resource_inheritance_example` ***PASSING***
+> **Associated Test:** `rend-acl/test/test_documentation_examples.rb#test_wiki_resource_inheritance_example`

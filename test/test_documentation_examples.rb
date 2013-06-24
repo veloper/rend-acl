@@ -1,12 +1,12 @@
-require 'test_helper'
+require 'helper'
 
-class WikiPagesResourcesTest < MiniTest::Unit::TestCase
+class DocumentationExamplesTest < Minitest::Test
 
-    def setup
-      @acl = Rend::Acl.new
-    end
+  def setup
+    @acl = Rend::Acl.new
+  end
 
-    def test_resource_inheritance_example
+  def test_wiki_resource_inheritance_example
       city_resource     = Rend::Acl::Resource.new("city")
       building_resource = Rend::Acl::Resource.new("building")
 
