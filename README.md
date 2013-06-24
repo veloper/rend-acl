@@ -86,6 +86,9 @@ Install this gem directly using...
 
     gem 'rend-acl', '~> 0.0.4'
 
+## Requirements
+
+* Ruby >= 1.9.2
 
 ## Contributing
 
