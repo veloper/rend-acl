@@ -42,6 +42,9 @@ These terms and concepts become easier to understand when translated into plain 
 ## Basic Usage Example
 
 ```ruby
+# ==> Require Rend ACL
+require 'rend/acl'
+
 # ==> Initialize ACL Object
 @acl = Rend::Acl.new
 
@@ -54,10 +57,10 @@ These terms and concepts become easier to understand when translated into plain 
 # Translation: Allow the "Driver" Role full-access to the "Car" Resource.
 @acl.allow! :role => "Driver", :resource => "Car"
 
-# Translation: Allow the "Mechanic" Role the privilege to "Repair" any Resouece.
+# Translation: Allow the "Mechanic" Role the privilege to "Repair" any Resource.
 @acl.allow! :role => "Mechanic", :privilege => "Repair"
 
-# Translation: Allow all Roles the privilege to "Look" at any Resouece.
+# Translation: Allow all Roles the privilege to "Look" at any Resource.
 @acl.allow! :privilege => "Look"
 
 # Translation: Deny all Roles any access to the "Train" Resource.
@@ -96,11 +99,11 @@ Install this gem directly using...
 
 ## Licensing
 
-* All ported Ruby code and assoicated 'Rend' gems are under a simple [New-BSD License](http://dan.doezema.com/licenses/new-bsd).
+* All ported Ruby code and associated 'Rend' gems are under a simple [New-BSD License](http://dan.doezema.com/licenses/new-bsd).
 * Original PHP code is licensed under [Zend's New-BSD License](http://framework.zend.com/license/).
     * This license can be found in `./ZEND_FRAMEWORK_LICENSE.txt`
 
 ## Acknowledgements
 
 * This project is **NOT** associated with, or endorsed by, Zend Technologies USA, Inc., nor any of its contributors.
-* Rend's modular design was heavily influced by [RSpec](https://github.com/rspec/rspec)'s approach.
+* Rend's modular design was heavily influenced by [RSpec](https://github.com/rspec/rspec)'s approach.
