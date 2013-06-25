@@ -84,7 +84,7 @@ Install this gem directly using...
 
 ... or simply include it in your project's `Gemfile` ...
 
-    gem 'rend-acl', '~> 0.0.4'
+    gem 'rend-acl', '~> 0.0.5'
 
 ## Requirements
 
